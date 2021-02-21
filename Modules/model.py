@@ -69,7 +69,7 @@ class SRCNN:
         # Initialise variable for best model path and validation loss records
         self.best_model_path   = './Models/SRCNN/' + self.model.name + '/'
         self.losses_location   = 'losses/'
-        self.losses_filename   = 'val_loss'
+        self.losses_filename   = 'val_loss.pkl'
         self.loc_val_history   = 'val_history.pkl'
         self.loc_train_history = 'train_history.pkl'
         self.tensorboard_log   = './logs/' + self.model.name + '/'
