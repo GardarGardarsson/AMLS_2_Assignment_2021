@@ -19,7 +19,9 @@ def loadImages(directory, file_extension='.png', loading_message = 'Loading imag
     imgFiles = sorted([filename for filename in os.listdir(directory) if file_extension in filename])
     
     # Number of images to load counting from 0
-    numImgs  = len(imgFiles) - 1 
+    numImgs  = len(imgFiles) - 1
+    
+    print('Found {} in directory'.format(len(imgFiles)))
     
     # Load image files from directory
     for i,filename in enumerate(imgFiles):
@@ -28,7 +30,7 @@ def loadImages(directory, file_extension='.png', loading_message = 'Loading imag
         images.append(np.asarray(img))         # Append to image list as a numpy array
         
         # Print loading progress on every tenth and last image
-        if not i % 10 or not i % numImgs:
+        if numImgs != 0 and ( not i % 10 or not i % numImgs ):
             
             # Use print progress function from homemade user-interface module
             ui.print_progress(iteration = i,
@@ -49,3 +51,11 @@ def reshapeImgs(img_arr):
         img = np.reshape(img, (1,h,w,ch))
         img_arr[i] = img / 255.0
     return img_arr
+    
+# Reshape 4D tensor to 3D image object
+def reshapeTensor(tensor_arr):
+    for i,tensor in enumerate(tensor_arr):
+        b,h,w,ch = tensor.shape
+        tensor = np.reshape(tensor, (h,w,ch))
+        tensor_arr[i] = tensor
+    return tensor_arr
