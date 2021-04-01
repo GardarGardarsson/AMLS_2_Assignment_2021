@@ -11,3 +11,13 @@ More specifically, the project aims at developing and evaluating deep learning m
 The datasets used for training and evaluating the models may be accessed from the [DIV2K Dataset Website](https://data.vision.ee.ethz.ch/cvl/DIV2K/) 
 
 **These instructions will be updated as the project progresses.**
+
+
+
+To initialise `TensorBoard`:
+
+- Open a terminal from your virtual environment
+- In the terminal, navigate to the project directory, i.e. `/AMLSII_20-21_SN20167036`
+- In the terminal, type in: `tensorboard --logdir='logs/'`
+- Open a web browser, e.g. `Chrome, Firefox` and type in `localhost:6006` in the address bar
+- The `TensorBoard` should load
