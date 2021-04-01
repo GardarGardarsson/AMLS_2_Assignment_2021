@@ -16,7 +16,7 @@ from time import time
 
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, Conv2DTranspose, PReLu
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose, PReLU
 from tensorflow.keras.optimizers import Adam
 
 class SRCNN:
@@ -46,11 +46,11 @@ class SRCNN:
         for l,f,k,s in zip(range(self.c_layers), self.c_filters, self.c_kernels, self.c_strides):
             # Layer zero differs from the rest as it has a defined input_shape parameter
             if not l:
-                self.model.add(Conv2D(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias = True, kernel_initializer = 'he_normal', input_shape=(None,None,3)))
-                self.model.add(PReLu())
+                self.model.add(Conv2D(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='he_normal', input_shape=(None,None,3)))
+                self.model.add(PReLU(shared_axes=[1,2]))
             else:
-                self.model.add(Conv2D(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias = True, kernel_initializer = 'he_normal'))
-                self.model.add(PReLu())
+                self.model.add(Conv2D(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='he_normal'))
+                self.model.add(PReLU(shared_axes=[1,2]))
     
         # Build model according to configuration - Deconvolutional layers
         for l,f,k,s in zip(range(self.d_layers), self.d_filters, self.d_kernels, self.d_strides):

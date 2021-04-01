@@ -10,13 +10,13 @@ Created on Thu Dec  3 21:33:27 2020
 def selection_menu(message,options,**kwargs):
     
     # Options is a dictionary of indexes (numbered items) and option descriptions
-    # Let's snatch it's lenght
+    # Let's snatch it's length
     n_options = len(options)
     
     # And define a valid selection boundary, remember 'range' upper bound is exclusive
     bounds = range(1,n_options+1)
     
-    # Initialise selection criterion
+    # Initialise selection criterion  
     selection = 0
     
     # While selection is out of bounds
