@@ -54,7 +54,7 @@ class SRCNN:
     
         # Build model according to configuration - Deconvolutional layers
         for l,f,k,s in zip(range(self.d_layers), self.d_filters, self.d_kernels, self.d_strides):
-            self.model.add(Conv2DTranspose(filters=f, kernel_size=k, strides=s, padding='same', activation=None))
+            self.model.add(Conv2DTranspose(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='he_normal'))
         
         # Update model name from configuration
         self.model._name = self.nameModel()
