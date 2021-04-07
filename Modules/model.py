@@ -12,20 +12,24 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
+import tensorflow as tf
+
 from time import time
 
 from tensorflow.keras.callbacks import TensorBoard
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, Conv2DTranspose, PReLU
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose, PReLU, Input, add
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import backend as K
 
 class SRCNN:
     """
     Super-Resolution Convolutional Neural Network class
     """
     def __init__(self,
-                 conv_layers,   conv_filters,   conv_kernel_sizes,   conv_strides, 
-                 deconv_layers, deconv_filters, deconv_kernel_sizes, deconv_strides):
+                 conv_layers,    conv_filters,   conv_kernel_sizes,   conv_strides,
+                 deconv_layers,  deconv_filters, deconv_kernel_sizes, deconv_strides,
+                 adam_optimiser, lr_scheduler,   name_affix):
         
         # Convolutional configuration
         self.c_layers  = conv_layers
@@ -38,6 +42,14 @@ class SRCNN:
         self.d_filters = deconv_filters
         self.d_kernels = deconv_kernel_sizes
         self.d_strides = deconv_strides
+        
+        # Optimiser configuration
+        self.adam_optimiser = adam_optimiser
+        self.lr_scheduler   = lr_scheduler
+        self.learning_rate  = lr_scheduler['initial_value']
+        
+        # Affix for naming
+        self.name_aff  = name_affix
     
         # Initialise model instance
         self.model = Sequential()
@@ -46,7 +58,7 @@ class SRCNN:
         for l,f,k,s in zip(range(self.c_layers), self.c_filters, self.c_kernels, self.c_strides):
             # Layer zero differs from the rest as it has a defined input_shape parameter
             if not l:
-                self.model.add(Conv2D(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='he_normal', input_shape=(None,None,3)))
+                self.model.add(Conv2D(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='glorot_uniform', input_shape=(None,None,3)))
                 self.model.add(PReLU(shared_axes=[1,2]))
             else:
                 self.model.add(Conv2D(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='he_normal'))
@@ -54,13 +66,20 @@ class SRCNN:
     
         # Build model according to configuration - Deconvolutional layers
         for l,f,k,s in zip(range(self.d_layers), self.d_filters, self.d_kernels, self.d_strides):
-            self.model.add(Conv2DTranspose(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='he_normal'))
+            self.model.add(Conv2DTranspose(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='glorot_uniform'))
         
         # Update model name from configuration
         self.model._name = self.nameModel()
         
+        # Configure the ADAM optimiser
+        optimiser = Adam(beta_1  = self.adam_optimiser['beta1'],
+                         beta_2  = self.adam_optimiser['beta2'],
+                         lr      = self.learning_rate,
+                         epsilon = self.adam_optimiser['epsilon'],
+                         )
+        
         # Compile model...
-        self.model.compile(optimizer=Adam(lr=1e-4), loss='mse',metrics=[metrics.psnr,metrics.ssim])
+        self.model.compile(optimizer=optimiser, loss='mse', metrics=[metrics.psnr,metrics.ssim])
         # ... and build
         self.model.build()
         
@@ -106,27 +125,39 @@ class SRCNN:
         for s in self.d_strides:
             d_strideStr+='-'+str(s[0])+str(s[1])
         
-        name = 'Conv-{clayers}_Flt{cfilters}_Krnl{ckernels}_Strd{cstrides}-Deconv-{dlayers}_Flt{dfilters}_Krnl{dkernels}_Strd{dstrides}'.format(clayers=self.c_layers,
+        name = 'Conv-{clayers}_Flt{cfilters}_Krnl{ckernels}_Strd{cstrides}-Deconv-{dlayers}_Flt{dfilters}_Krnl{dkernels}_Strd{dstrides}{affix}'.format(clayers=self.c_layers,
                                                                              cfilters=c_filterStr,
                                                                              ckernels=c_kernelStr,
                                                                              cstrides=c_strideStr,
                                                                              dlayers=self.d_layers,
                                                                              dfilters=d_filterStr,
                                                                              dkernels=d_kernelStr,
-                                                                             dstrides=d_strideStr)
+                                                                             dstrides=d_strideStr,
+                                                                             affix   =self.name_aff)
         return name
     
-    def train(self, total_epochs, batch_size, datahandler, validation_set):
+    def lr_decay(self):
+        """
+        L E A R N I N G   R A T E   D E C A Y
+        """
+        # Decay learning rate by factor (e.g. halve)
+        self.learning_rate *= self.lr_scheduler['decay_factor']
+        # If learning rate is below minimum:
+        if self.learning_rate <= self.lr_scheduler['minimum']:
+            # Floor learning rate at minimum
+            self.learning_rate = self.lr_scheduler['minimum']
+    
+    def train(self, total_epochs, steps_per_epoch, batch_size, datahandler, validation_set):
 
         """
         I N I T I A L I S A T I O N   F O R   T R A I N I N G
         """
-        # Training settings
-        steps_per_epoch = np.floor(800 / batch_size).astype(int)
-        
         # Get validation variables from set
         x_val = validation_set['lr'].astype('float32')
         y_val = validation_set['hr'].astype('float32')
+        
+        # Initialise flatness threshold
+        flatness_threshold = 0.0
         
         # Create the directories if they don't exist
         if not os.path.isdir(self.best_model_path):
@@ -160,6 +191,12 @@ class SRCNN:
             
             # Hook TensorBoard up with our SRCNN model
             tensorboard.set_model(self.model)
+            
+            # Update the flatness threshold, so that it's maxed at 0.15 once 1/2 of the training session are completed
+            if flatness_threshold <= 0.15:
+                flatness_threshold += (0.15/(1*total_epochs/2))
+            else:
+                flatness_threshold = 0.15
             
             # Start stopwatch
             epoch_start = time()
@@ -200,6 +237,16 @@ class SRCNN:
             
             # Keep history
             self.val_history = self.val_history.append(validation_losses, ignore_index=True)
+                              
+                              
+            """
+            D E C A Y   L E A R N I N G   R A T E
+            """
+            # If the current epoch matches the update learning rate  interval
+            if not epoch % self.lr_scheduler['update_interval'] and epoch:
+                # Decay learning rate
+                self.lr_decay()
+                K.set_value(self.model.optimizer.learning_rate, self.learning_rate)
 
             """
             U P D A T E   T E N S O R B O A R D
@@ -210,13 +257,16 @@ class SRCNN:
             # Stop stopwatch
             elapsed_time = time() - epoch_start
             
+            
             """
             L O G G E R
             """
-            # Print statistics about the training procedure
+            # Print statistics about the training procedure, current epoch, elapsed time, learning rate, losses
             print('-'*60+'\n'+'{msg:^60s}'.format(msg="E P O C H   {e}/{te}").format(e=epoch+1, te=total_epochs) + '\n' + '-'*60)
             msg='Runtime'
             print(f' {msg:25} ==> {elapsed_time:10}s')
+            msg='Learning rate'
+            print(f' {msg:25} ==> {self.learning_rate:10}')
             for metric,score in training_losses.items():
                 print(f' {metric:25} ==> {score:10}')
             for metric,score in validation_losses.items():
@@ -272,3 +322,291 @@ class SRCNN:
         
         path = self.best_model_path+self.losses_location+self.loc_val_history
         self.val_history   = pd.read_pickle(path)
+
+"""
++------------------------------------------------------------------------------------------------------+
+|
+| ~~~~~~~~~~~~~~~~~~~~~~~~          M O D E L   F R A M E W O R K   2       ~~~~~~~~~~~~~~~~~~~~~~~~~~ |
+|
++------------------------------------------------------------------------------------------------------+
+"""
+
+class ResCNN:
+    """
+    ResCNN class
+    """
+    def __init__(self,
+                 conv_layers,   conv_filters,   conv_kernel_sizes,   conv_strides,
+                 deconv_layers, deconv_filters, deconv_kernel_sizes, deconv_strides, name_affix):
+        
+        # Convolutional configuration
+        self.c_layers  = conv_layers
+        self.c_filters = conv_filters
+        self.c_kernels = conv_kernel_sizes
+        self.c_strides = conv_strides
+        
+        # Deconvolutional configuration
+        self.d_layers  = deconv_layers
+        self.d_filters = deconv_filters
+        self.d_kernels = deconv_kernel_sizes
+        self.d_strides = deconv_strides
+        
+        # Affix for naming
+        self.name_aff  = name_affix
+        
+        # INPUT
+        input = Input(shape=(None,None,3))
+        
+        # FEATURE EXTRACTION
+        feature = Conv2D(filters=56, kernel_size=(5,5), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(input)
+        feature = PReLU(shared_axes=[1,2])(feature)
+        feature = Conv2D(filters=12, kernel_size=(1,1), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(feature)
+        feature = PReLU(shared_axes=[1,2])(feature)
+        
+        # NON-LINEAR MAPPING WITH SKIP CONNECTION
+        map_1 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(feature)
+        map_1 = PReLU(shared_axes=[1,2])(map_1)
+        
+        map_2 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(map_1)
+        map_2 = PReLU(shared_axes=[1,2])(map_2)
+        
+        map_3 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(map_2)
+        map_3 = PReLU(shared_axes=[1,2])(map_3)
+        
+        map_4 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(map_3)
+        map_4 = PReLU(shared_axes=[1,2])(map_4)
+                
+        
+        
+        # RECONSTRUCTION
+        reconstruction = Conv2D(filters=56, kernel_size=(1,1), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(maps)
+        reconstruction = PReLU(shared_axes=[1,2])(reconstruction)
+        
+        
+        # DECONVOLUTION
+        deconv = Conv2DTranspose(filters=3, kernel_size=(4,4), strides=(4,4), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(reconstruction)
+        
+        # MAKE MODEL
+        self.model = Model(input, deconv)
+        
+        # Update model name from configuration
+        self.model._name = self.nameModel()
+        
+        # Compile model...
+        self.model.compile(optimizer=Adam(lr=1e-4), loss='mse',metrics=[metrics.psnr,metrics.ssim])
+        
+        # Training history
+        self.train_history = pd.DataFrame()
+        self.val_history   = pd.DataFrame()
+                
+        # Initialise variable for best model path and validation loss records
+        self.best_model_path   = './Models/ResCNN/' + self.model.name + '/'
+        self.losses_location   = 'losses/'
+        self.losses_filename   = 'val_loss.pkl'
+        self.loc_val_history   = 'val_history.pkl'
+        self.loc_train_history = 'train_history.pkl'
+        self.tensorboard_log   = './logs/' + self.model.name + '/'
+    
+    # Automatically generate name for model from configuration
+    def nameModel(self):
+        c_filterStr=''
+        for f in self.c_filters:
+            c_filterStr+='-'+str(f)
+        
+        c_kernelStr=''
+        
+        for k in self.c_kernels:
+            c_kernelStr+='-'+str(k[0])+str(k[1])
+        
+        c_strideStr=''
+        
+        for s in self.c_strides:
+            c_strideStr+='-'+str(s[0])+str(s[1])
+            
+        d_filterStr=''
+        for f in self.d_filters:
+            d_filterStr+='-'+str(f)
+        
+        d_kernelStr=''
+        
+        for k in self.d_kernels:
+            d_kernelStr+='-'+str(k[0])+str(k[1])
+        
+        d_strideStr=''
+        
+        for s in self.d_strides:
+            d_strideStr+='-'+str(s[0])+str(s[1])
+        
+        name = 'Conv-{clayers}_Flt{cfilters}_Krnl{ckernels}_Strd{cstrides}-Deconv-{dlayers}_Flt{dfilters}_Krnl{dkernels}_Strd{dstrides}_{affix}'.format(clayers=self.c_layers,
+                                                                             cfilters=c_filterStr,
+                                                                             ckernels=c_kernelStr,
+                                                                             cstrides=c_strideStr,
+                                                                             dlayers=self.d_layers,
+                                                                             dfilters=d_filterStr,
+                                                                             dkernels=d_kernelStr,
+                                                                             dstrides=d_strideStr,
+                                                                             affix   =self.name_aff)
+        return name
+    
+    def train(self, total_epochs, batch_size, datahandler, validation_set):
+
+        """
+        I N I T I A L I S A T I O N   F O R   T R A I N I N G
+        """
+        # Training settings
+        steps_per_epoch = np.floor(800 / batch_size).astype(int)
+        
+        # Get validation variables from set
+        x_val = validation_set['lr'].astype('float32')
+        y_val = validation_set['hr'].astype('float32')
+        
+        # Create the directories if they don't exist
+        if not os.path.isdir(self.best_model_path):
+            os.makedirs(self.best_model_path)
+            
+        if not os.path.isdir(self.best_model_path + self.losses_location):
+            os.makedirs(self.best_model_path + self.losses_location)
+            
+        # If a validation record exists we load it
+        if os.path.exists(self.best_model_path + self.losses_location + self.losses_filename):
+            with open(self.best_model_path + self.losses_location + self.losses_filename, 'rb') as file:
+                validation_losses     = pickle.load(file)
+                best_validation_loss  = validation_losses['val_loss']
+                
+        # Else we start from up high
+        else:
+            best_validation_loss = 1e6
+            
+        """
+        L O G G E R
+        """
+        # Print statistics about the training procedure, let user know something is happening before first epoch finishes
+        print('-'*60+'\n'+'{msg:^60s}'.format(msg="... Initiating Training Session ...") + '\n' + '-'*60)
+        
+        for epoch in range(total_epochs):
+            
+            # Define a TensorBoard for visualisation of the training process
+            tensorboard = TensorBoard(log_dir=self.tensorboard_log,
+                                      histogram_freq=1,
+                                      write_graph = True)
+            
+            # Hook TensorBoard up with our SRCNN model
+            tensorboard.set_model(self.model)
+            
+            # Start stopwatch
+            epoch_start = time()
+            
+            for step in range(steps_per_epoch):
+                
+                """
+                T R A I N
+                """
+                # Get a new training batch, n number of image patches set by batch_size
+                batch = datahandler.get_batch(batch_size = batch_size, flatness = .1)
+                
+                # Extract training samples and labels
+                x_train = batch['lr'].astype('float32')
+                y_train = batch['hr'].astype('float32')
+                
+                # Train on batch
+                training_losses = self.model.train_on_batch(x = x_train,
+                                                            y = y_train)
+                
+                # Format training losses with descriptive keys for TensorBoard
+                training_losses = {'train_'+str(key):val for (key,val) in zip(self.model.metrics_names,training_losses)}
+                
+                # Keep history
+                self.train_history = self.train_history.append(training_losses, ignore_index=True)
+            
+            """
+            V A L I D A T E
+            """
+            # Get validation losses
+            validation_losses = self.model.evaluate(x_val,
+                                                    y_val,
+                                                    batch_size=batch_size,
+                                                    verbose=0)
+            
+            # Format validation losses with descriptive key for TensorBoard
+            validation_losses = {'val_'+str(key):val for (key,val) in zip(self.model.metrics_names,validation_losses)}
+            
+            # Keep history
+            self.val_history = self.val_history.append(validation_losses, ignore_index=True)
+
+            """
+            U P D A T E   T E N S O R B O A R D
+            """
+            # Push validation losses to TensorBoard logs
+            tensorboard.on_epoch_end(epoch, validation_losses)
+            
+            # Stop stopwatch
+            elapsed_time = time() - epoch_start
+            
+            """
+            L O G G E R
+            """
+            # Print statistics about the training procedure
+            print('-'*60+'\n'+'{msg:^60s}'.format(msg="E P O C H   {e}/{te}").format(e=epoch+1, te=total_epochs) + '\n' + '-'*60)
+            msg='Runtime'
+            print(f' {msg:25} ==> {elapsed_time:10}s')
+            for metric,score in training_losses.items():
+                print(f' {metric:25} ==> {score:10}')
+            for metric,score in validation_losses.items():
+                print(f' {metric:25} ==> {score:10}')
+            
+                        
+            """
+            S A V E   B E S T   M O D E L S   -   S T O R E   V A L I D A T I O N   L O S S E S
+            """
+            # If current validation loss is lower than the best known one
+            if validation_losses['val_loss'] < best_validation_loss:
+                # Update best validation loss
+                best_validation_loss = validation_losses['val_loss']
+                # Save the model - I might want to save the weights as well, it might be useful to initialise the x3 / x4 models on the x2 model
+                self.saveWeights()
+                print('*'*60)
+                print("Best model weights w/ val loss {l:.6f} saved to {p}".format(l=validation_losses['val_loss'],
+                                                                                   p=self.best_model_path))
+                print('*'*60)
+        
+                with open(self.best_model_path + self.losses_location + self.losses_filename, 'wb') as file:
+                    pickle.dump(validation_losses, file, protocol=pickle.HIGHEST_PROTOCOL)
+               
+            
+        # Close TensorBoard
+        tensorboard.on_train_end(None)
+        
+        # Store losses history
+        self.storeHistory()
+    
+    # Method to load model weights and history
+    def loadWeights(self):
+        self.model.load_weights(self.best_model_path)
+        self.loadHistory()
+        
+    # Method to save model weights
+    def saveWeights(self):
+        self.model.save_weights(self.best_model_path)
+        print('Model weights saved to: {}'.format(self.best_model_path))
+    
+    # Store training records dataframe
+    def storeHistory(self):
+        path = self.best_model_path+self.losses_location+self.loc_train_history
+        self.train_history.to_pickle(path)
+        
+        path = self.best_model_path+self.losses_location+self.loc_val_history
+        self.val_history.to_pickle(path)
+    
+    # Load training records dataframe
+    def loadHistory(self):
+        path = self.best_model_path+self.losses_location+self.loc_train_history
+        self.train_history = pd.read_pickle(path)
+        
+        path = self.best_model_path+self.losses_location+self.loc_val_history
+        self.val_history   = pd.read_pickle(path)
+
+
+
+
+
+
