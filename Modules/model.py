@@ -20,7 +20,9 @@ from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Conv2D, Conv2DTranspose, PReLU, Input, add
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.initializers import RandomNormal
 from tensorflow.keras import backend as K
+
 
 class SRCNN:
     """
@@ -64,6 +66,8 @@ class SRCNN:
                 self.model.add(Conv2D(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='he_normal'))
                 self.model.add(PReLU(shared_axes=[1,2]))
     
+        #deconv_weights = RandomNormal(mean=0.0, stddev=0.001, seed=None) <- Used in the original paper
+        
         # Build model according to configuration - Deconvolutional layers
         for l,f,k,s in zip(range(self.d_layers), self.d_filters, self.d_kernels, self.d_strides):
             self.model.add(Conv2DTranspose(filters=f, kernel_size=k, strides=s, padding='same', activation=None, use_bias=True, kernel_initializer='glorot_uniform'))

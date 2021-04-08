@@ -12,8 +12,6 @@ The datasets used for training and evaluating the models may be accessed from th
 
 **These instructions will be updated as the project progresses.**
 
-
-
 To initialise `TensorBoard`:
 
 - Open a terminal from your virtual environment
@@ -21,3 +19,4 @@ To initialise `TensorBoard`:
 - In the terminal, type in: `tensorboard --logdir='logs/'`
 - Open a web browser, e.g. `Chrome, Firefox` and type in `localhost:6006` in the address bar
 - The `TensorBoard` should load
+
