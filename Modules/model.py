@@ -333,6 +333,11 @@ class SRCNN:
 | ~~~~~~~~~~~~~~~~~~~~~~~~          M O D E L   F R A M E W O R K   2       ~~~~~~~~~~~~~~~~~~~~~~~~~~ |
 |
 +------------------------------------------------------------------------------------------------------+
+
+This class was implemented to test some alternate model frameworks
+Of the things tried, notable mentions include a CNN based on the FSRCNN but with skip connections in the non-linear mapping layers.
+Others include ESPCN, efficient sub-pixel upsampling method.
+For brevity, these experiments aren't reported in the report but you can see traces of them here...
 """
 
 class ResCNN:
@@ -367,20 +372,20 @@ class ResCNN:
         feature = Conv2D(filters=12, kernel_size=(1,1), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(feature)
         feature = PReLU(shared_axes=[1,2])(feature)
         
-        # NON-LINEAR MAPPING WITH SKIP CONNECTION
+        # NON-LINEAR MAPPING WITH SKIP CONNECTION - REVISE RESBLOCK
         map_1 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(feature)
-        map_1 = PReLU(shared_axes=[1,2])(map_1)
+        act_1 = PReLU(shared_axes=[1,2])(map_1)
         
-        map_2 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(map_1)
-        map_2 = PReLU(shared_axes=[1,2])(map_2)
+        map_2 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(act_1)
+        act_2 = PReLU(shared_axes=[1,2])(map_2)
         
-        map_3 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(map_2)
-        map_3 = PReLU(shared_axes=[1,2])(map_3)
+        map_3 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(act_2)
+        act_3 = PReLU(shared_axes=[1,2])(map_3)
         
-        map_4 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(map_3)
-        map_4 = PReLU(shared_axes=[1,2])(map_4)
-                
-        
+        map_4 = Conv2D(filters=12, kernel_size=(3,3), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(act_3)
+        act_4 = PReLU(shared_axes=[1,2])(map_4)
+           
+        hidden = add([map_1,map_4])
         
         # RECONSTRUCTION
         reconstruction = Conv2D(filters=56, kernel_size=(1,1), strides=(1,1), padding='same', activation=None, use_bias=True, kernel_initializer='he_normal')(maps)
