@@ -3,7 +3,8 @@
 
 # Directories #
 ###############
-Datasets/
+Datasets/*
+!Datasets/Evaluate/
 logs/
 Bak/
 bak_log_files/
