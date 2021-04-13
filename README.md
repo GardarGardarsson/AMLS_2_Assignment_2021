@@ -64,9 +64,9 @@ The project directory is structured as followed:
 ```
 Datasets/
 	# Should be added
-  |-> DIV2K_train_HR	
-      |-> 0000.png
-          ...
+	|-> DIV2K_train_HR	
+		|-> 0000.png
+				...
           
   # Could be added to verify functionality, feel free to try any track and scale
   |-> DIV2K_train_LR_bicubic	
