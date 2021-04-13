@@ -6,7 +6,7 @@
 #### Department of Electronic and Electrical Engineering
 **Student Number:** 20167036
 
-<img src="./Notebooks/imgs/teaser.png" alt="teaser" style="zoom:20%;" />
+<img src="./Notebooks/imgs/teaser.png" alt="teaser" style="zoom:15%;" />
 
 ```python
 PSNR: 31.20 dB 
