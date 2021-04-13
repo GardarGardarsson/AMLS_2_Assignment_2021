@@ -66,59 +66,58 @@ Datasets/
 	# Should be added
 	|-> DIV2K_train_HR	
 		|-> 0000.png
-				...
+		    ...
           
-  # Could be added to verify functionality, feel free to try any track and scale
-  |-> DIV2K_train_LR_bicubic	
-      |-> X4
-      		|-> 0000x4.png
-      		...
+	# Could be added to verify functionality, feel free to try any track and scale
+	|-> DIV2K_train_LR_bicubic	
+		|-> X4
+			|-> 0000x4.png
+			...
       		
-  # Should be added regardless of chosen track
-  |-> DIV2K_valid_HR	
-  		|-> 0801.png
-  				...
+  	# Should be added regardless of chosen track
+	|-> DIV2K_valid_HR	
+		|-> 0801.png
+		    ...
   				
  	# Should match chosen track and scale, in this case 'bicubic x4'
  	|-> DIV2K_valid_LR_bicubic	 
  			|-> X4
- 					|-> 0801x4.png
- 							...  
+			|-> 0801x4.png
+			    ...  
  							
-  # Small sample from the datasest for visual inspection in main.ipybn
-  |-> Evaluate	
-      |-> Bicubic
-      |-> HR
-      |-> Predicted
-      |-> Unknown
+	# Small sample from the datasest for visual inspection in main.ipybn
+	|-> Evaluate	
+		|-> Bicubic
+		|-> HR
+		|-> Predicted
+		|-> Unknown
       
       
 # The virtual environment needed to run the project, see prev. section	      
 Environment/
-	|-> amls_2_env_sn20167036.yml  
+	|-> amls_2_env_sn20167036.yml  	
 
 Models/
-	|-> ResCNN			# Residual networks weren't heavily researched and not reported
-	|-> SRCNN				# The FSRCNN model of Dong et al. however was heavily studied
-			# Directories for model weights and training losses 
-			|-> Conv-7_Flt- ... -22_bicubic_X2  
-					...
+	|-> ResCNN					# Residual networks weren't heavily researched and not reported
+	|-> SRCNN					# The FSRCNN model of Dong et al. however was heavily studied
+		|-> Conv-7_Flt- ... -22_bicubic_X2  	# Directories for model weights and training losses 
+		    ... 
 	|-> VDSR				
 
 Modules/
 	|-> data_processing.py	# Datahandling etc.
-	|-> metrics.py					# PSNR, SSIM for both images and tensors
-	|-> model.py						# The SRCNN model class and a ResCNN (which was used to experiment other models)
+	|-> metrics.py		# PSNR, SSIM for both images and tensors
+	|-> model.py		# The SRCNN model class and a ResCNN (which was used to experiment other models)
 	|-> user_interface.py   # UI for interacting with the program
 
 Notebooks/
-	|-> imgs															# Images for notebooks and this README markdown
+	|-> imgs				# Images for notebooks and this README markdown
 	|-> Model Performance Analysis.ipynb	# Sketchbook to generate graphs
-  |-> project_notebook_1.ipynb					# Development notebook - getting acquainted with the ISR datahandler
-  |-> project_notebook_2.ipynb					# Some transition towards the final main.ipynb...
-  |-> project_notebook_3.ipynb					# ... same ...
+	|-> project_notebook_1.ipynb		# Development notebook - getting acquainted with the ISR datahandler
+	|-> project_notebook_2.ipynb		# Some transition towards the final main.ipynb...
+	|-> project_notebook_3.ipynb		# ... same ...
   
-main.ipynb		# The holy-grail, the crown jewel, the alpha, the omega.	
+main.ipynb	# The holy-grail, the crown jewel, the alpha, the omega.	
 ```
 
 This short summary gives the most necessary details, but below are more detailed instructions to get things up and running:
