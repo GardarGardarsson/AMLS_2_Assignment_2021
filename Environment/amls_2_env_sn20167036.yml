@@ -1,0 +1,29 @@
+name: amls_2_env_sn20167036
+channels:
+  - defaults
+dependencies:
+  - _tflow_select=2.3.0=mkl
+  - h5py=2.*
+  - hdf5=1.*
+  - imageio=2.9.*
+  - jupyter_client=6.1.*
+  - jupyter_core=4.7.*
+  - jupyterlab_pygments=0.*
+  - keras-applications=1.*
+  - keras-preprocessing=1.*
+  - matplotlib=3.*
+  - matplotlib-base=3.*
+  - pandas=1.*
+  - pillow=8.*
+  - scikit-image=0.17.*
+  - seaborn=0.11.*
+  - tensorboard=2.0.*
+  - tensorflow=2.0.*
+  - tensorflow-base=2.0.*
+  - tensorflow-estimator=2.0.*
+  - pip:
+    - isr==2.2.0
+    - numpy==1.19.*
+    - opencv-python==4.5.*
+    
+prefix: /opt/anaconda3/envs/amls_2_env_sn20167036
