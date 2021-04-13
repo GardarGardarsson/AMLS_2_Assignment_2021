@@ -63,33 +63,45 @@ The project directory is structured as followed:
 
 ```
 Datasets/
-  |-> DIV2K_train_HR						# Should be added
+	# Should be added
+  |-> DIV2K_train_HR	
       |-> 0000.png
           ...
-  |-> DIV2K_train_LR_bicubic		# Could be added to verify functionality, feel free to try any track and scale
+          
+  # Could be added to verify functionality, feel free to try any track and scale
+  |-> DIV2K_train_LR_bicubic	
       |-> X4
       		|-> 0000x4.png
       		...
-  |-> DIV2K_valid_HR						# Should be added regardless of chosen track
+      		
+  # Should be added regardless of chosen track
+  |-> DIV2K_valid_HR	
   		|-> 0801.png
   				...
- 	|-> DIV2K_valid_LR_bicubic 		# Should match chosen track and scale, in this case 'bicubic x4'
+  				
+ 	# Should match chosen track and scale, in this case 'bicubic x4'
+ 	|-> DIV2K_valid_LR_bicubic	 
  			|-> X4
  					|-> 0801x4.png
  							...  
-  |-> Evaluate									# Small sample from the datasest for visual inspection in main.ipybn
+ 							
+  # Small sample from the datasest for visual inspection in main.ipybn
+  |-> Evaluate	
       |-> Bicubic
       |-> HR
       |-> Predicted
       |-> Unknown
       
+      
+# The virtual environment needed to run the project, see prev. section	      
 Environment/
-	|-> amls_2_env_sn20167036.yml  # The virtual environment needed to run the project, see prev. section
+	|-> amls_2_env_sn20167036.yml  
 
 Models/
 	|-> ResCNN			# Residual networks weren't heavily researched and not reported
-	|-> SRCNN				# The FSRCNN model of Dong et al. however was heavily studies
-			|-> Conv-7_Flt- ... -22_bicubic_X2  # Directories for model weights and training losses 
+	|-> SRCNN				# The FSRCNN model of Dong et al. however was heavily studied
+			# Directories for model weights and training losses 
+			|-> Conv-7_Flt- ... -22_bicubic_X2  
 					...
 	|-> VDSR				
 
@@ -117,7 +129,7 @@ This short summary gives the most necessary details, but below are more detailed
 
 To verify training and running the evaluation on the 100 validation images, you should [get the DIV2K dataset here](https://data.vision.ee.ethz.ch/cvl/DIV2K/), or a subset thereof (e.g. one problem track, `x4 bicubic`) making sure to download the `HR`, `train` and `validation` sets from the link above, e.g. if you go for the `x4 bicubic` you'd get the following `.zip` files from the link above:
 
- <img src="/Users/gardar/Documents/UCL/ELEC0135 MLS-II Applied Machine Learning Systems 2/Assignments/Final/AMLSII_20-21_SN20167036/Notebooks/imgs/div2k_info.png" alt="div2k_info" style="zoom:35%;" />
+ <img src="./Notebooks/imgs/div2k_info.png" alt="div2k_info" style="zoom:35%;" />
 
 Then place them in `./Datasets` and un-zip directly there! <br>**Note!** Once un-zipped, don't place them in a `./DIV2K` folder under `./Datasets/` as the DIV2K website suggests.
 
@@ -131,7 +143,7 @@ This would be the `main.ipynb` notebook, based on the root of the project direct
 
 Based on your chosen problem track, when evaluation on the 100 validation images of the DIV2K dataset, you should witness results similar to the ones reported for `i-FSRCNN` in the table below:
 
-<img src="/Users/gardar/Documents/UCL/ELEC0135 MLS-II Applied Machine Learning Systems 2/Assignments/Final/AMLSII_20-21_SN20167036/Notebooks/imgs/results.png" alt="results" style="zoom:40%;" />
+<img src="./Notebooks/imgs/results.png" alt="results" style="zoom:40%;" />
 
 
 
