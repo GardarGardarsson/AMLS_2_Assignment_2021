@@ -51,7 +51,7 @@ Don't forget to activate the environment by running:
 conda activate amls_2_env_sn20167036
 ```
 
-Or starting from the `GUI`. If you encounter errors during installation, *before abandoning all hope*, please try opening the `.yml` with a text editor, and fiddle with the `*` wildcard symbol for version constraints. E.g. if you see `numpy 1.5.3` giving you problems try updating it to `numpy 1.5.*` or `numpy 1.*` as there can be issues regarding `os` and package support I won't be able to verify. I've already put pretty extravagant wildcards but mention this just in case things go south.
+Or starting from the `GUI`. If you encounter errors during installation, ***before abandoning all hope***, please try opening the `.yml` with a text editor, and fiddle with the `*` wildcard symbol for version constraints. E.g. if you see `numpy 1.5.3` giving you problems try updating it to `numpy 1.5.*` or `numpy 1.*` as there can be issues regarding `os` and package support that I won't be able to verify. I've already put pretty extravagant wildcards but mention this just in case things go south.
 
 For more information on managing `conda` environments you can always [refer to the documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file). 
 
@@ -105,9 +105,10 @@ Models/
 	|-> VDSR				
 
 Modules/
-	|-> data_processing.py	# Datahandling etc.
-	|-> metrics.py		# PSNR, SSIM for both images and tensors
-	|-> model.py		# The SRCNN model class and a ResCNN (which was used to experiment other models)
+	|-> data_processing.py	# Datahandling module, read images into memory from directory, reshape 3d-imgs to 4d-tensors and vice versa
+	|-> metrics.py		# PSNR, SSIM calculations for both images and tensors
+	|-> model.py		# The SRCNN model class, which holds the model, a .train() method and much more, this is outlined in the report and code
+				# There's also a ResCNN class which was used to experiment other models, not explicitly reported
 	|-> user_interface.py   # UI for interacting with the program
 
 Notebooks/
@@ -117,7 +118,7 @@ Notebooks/
 	|-> project_notebook_2.ipynb		# Some transition towards the final main.ipynb...
 	|-> project_notebook_3.ipynb		# ... same ...
   
-main.ipynb	# The holy-grail, the crown jewel, the alpha, the omega.	
+main.ipynb	# The holy-grail, the crown jewel, the alpha, the omega. Putting it all together in one succinct Jupyter Notebook. 	
 ```
 
 This short summary gives the most necessary details, but below are more detailed instructions to get things up and running:
